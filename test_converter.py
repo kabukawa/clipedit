@@ -10,6 +10,10 @@ from converter import (
     detect_format,
     markdown_to_tsv,
     to_csv,
+    to_fullwidth_digits,
+    to_halfwidth_alnum,
+    to_halfwidth_digits,
+    to_halfwidth_parens,
     to_markdown,
     to_tsv,
     tsv_to_markdown,
@@ -103,6 +107,72 @@ class TestConvert(unittest.TestCase):
         self.assertEqual(src, FormatKind.CSV)
         self.assertEqual(dst, FormatKind.MARKDOWN)
         self.assertIn("|", out)
+
+
+_SAMPLE = "価格１２３円ＡＢＣａｂｃ（注）！　カタカナ"
+
+
+class TestHalfwidth(unittest.TestCase):
+    def test_digits_only(self) -> None:
+        self.assertEqual(
+            to_halfwidth_digits(_SAMPLE),
+            "価格123円ＡＢＣａｂｃ（注）！　カタカナ",
+        )
+
+    def test_alnum_only(self) -> None:
+        self.assertEqual(
+            to_halfwidth_alnum(_SAMPLE),
+            "価格123円ABCabc（注）！　カタカナ",
+        )
+
+    def test_parens_only(self) -> None:
+        self.assertEqual(
+            to_halfwidth_parens(_SAMPLE),
+            "価格１２３円ＡＢＣａｂｃ(注)！　カタカナ",
+        )
+
+    def test_halfwidth_unchanged(self) -> None:
+        src = "abc123()Ａ"
+        self.assertEqual(to_halfwidth_digits(src), "abc123()Ａ")
+        self.assertEqual(to_halfwidth_alnum(src), "abc123()A")
+        self.assertEqual(to_halfwidth_parens(src), "abc123()Ａ")
+
+    def test_keeps_newlines(self) -> None:
+        src = "１２３\n（Ａ）\n"
+        self.assertEqual(to_halfwidth_digits(src), "123\n（Ａ）\n")
+        self.assertEqual(to_halfwidth_alnum(src), "123\n（A）\n")
+        self.assertEqual(to_halfwidth_parens(src), "１２３\n(Ａ)\n")
+
+    def test_empty_raises(self) -> None:
+        for fn in (
+            to_halfwidth_digits,
+            to_fullwidth_digits,
+            to_halfwidth_alnum,
+            to_halfwidth_parens,
+        ):
+            with self.assertRaises(ValueError):
+                fn("")
+            with self.assertRaises(ValueError):
+                fn("  \n\t")
+
+
+class TestFullwidthDigits(unittest.TestCase):
+    def test_digits_only(self) -> None:
+        self.assertEqual(
+            to_fullwidth_digits("価格123円ABC（注）！　カタカナ"),
+            "価格１２３円ABC（注）！　カタカナ",
+        )
+
+    def test_leaves_letters_and_fullwidth_digits(self) -> None:
+        self.assertEqual(to_fullwidth_digits("abc１２３()"), "abc１２３()")
+
+    def test_keeps_newlines(self) -> None:
+        self.assertEqual(to_fullwidth_digits("12\n3\n"), "１２\n３\n")
+
+    def test_roundtrip_with_halfwidth(self) -> None:
+        src = "注文番号 42 と ７"
+        self.assertEqual(to_halfwidth_digits(to_fullwidth_digits(src)), "注文番号 42 と 7")
+        self.assertEqual(to_fullwidth_digits(to_halfwidth_digits(src)), "注文番号 ４２ と ７")
 
 
 if __name__ == "__main__":

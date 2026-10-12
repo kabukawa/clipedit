@@ -1,6 +1,6 @@
 # ClipEdit
 
-Excel / Google Sheets の表（TSV）・CSV・Markdown 表を、**クリップボード経由**で相互変換する CLI です。
+Excel / Google Sheets の表（TSV）・CSV・Markdown 表を、**クリップボード経由**で相互変換する CLI です。あわせて、数字・英数字・丸括弧 `()` の全角と半角を、指定した文字種だけ変換するモードがあります。
 
 タスクトレイ常駐はしません。AutoHotKey などからホットキーで呼び出す想定です。Windows / macOS / Linux で動きます。
 
@@ -20,9 +20,21 @@ python main.py tsv
 
 # 任意の表 → CSV
 python main.py csv
+
+# 数字（０-９）だけ全角→半角
+python main.py num
+
+# 数字（0-9）だけ半角→全角
+python main.py numzen
+
+# 英数字（０-９ Ａ-Ｚ ａ-ｚ）だけ全角→半角
+python main.py alnum
+
+# 丸括弧（ ）だけ半角の () にする
+python main.py paren
 ```
 
-変換結果はクリップボードに書き戻されます。成功時は stderr に短いステータスが出ます。
+変換結果はクリップボードに書き戻されます。成功時は stderr に短いステータスが出ます。クリップボードが空、または表モードで表として読めないときは stderr に `error:` を出して終了コード 1 で戻ります。クリップボードの読み書きに失敗したときは終了コード 2 です。
 
 | オプション | 説明 |
 |------------|------|
@@ -62,6 +74,30 @@ echo -e "a\tb\n1\t2" | python main.py md --stdin
 {
     RunWait('python "C:\Users\kabuk\Documents\work\src\clipedit\main.py" csv -q', , "Hide")
 }
+
+; Ctrl+Shift+N : 数字だけ全角→半角
+^+n::
+{
+    RunWait('python "C:\Users\kabuk\Documents\work\src\clipedit\main.py" num -q', , "Hide")
+}
+
+; Ctrl+Alt+N : 数字だけ半角→全角
+^!n::
+{
+    RunWait('python "C:\Users\kabuk\Documents\work\src\clipedit\main.py" numzen -q', , "Hide")
+}
+
+; Ctrl+Shift+A : 英数字だけ全角→半角
+^+a::
+{
+    RunWait('python "C:\Users\kabuk\Documents\work\src\clipedit\main.py" alnum -q', , "Hide")
+}
+
+; Ctrl+Shift+P : 丸括弧だけ全角→半角
+^+p::
+{
+    RunWait('python "C:\Users\kabuk\Documents\work\src\clipedit\main.py" paren -q', , "Hide")
+}
 ```
 
 venv を使う場合は `python` を `.venv\Scripts\python.exe` のフルパスに置き換えてください。
@@ -74,6 +110,10 @@ venv を使う場合は `python` を `.venv\Scripts\python.exe` のフルパス�
 | `md` | TSV / CSV / Markdown | Markdown 表 |
 | `tsv` | TSV / CSV / Markdown | タブ区切り |
 | `csv` | TSV / CSV / Markdown | CSV |
+| `num` | 任意のテキスト | 全角数字だけ半角。英字・記号・かな・括弧は残す |
+| `numzen` | 任意のテキスト | 半角数字だけ全角。英字・記号・かな・括弧は残す |
+| `alnum` | 任意のテキスト | 全角の英字と数字だけ半角。記号・かな・括弧は残す |
+| `paren` | 任意のテキスト | 全角の丸括弧 `（）` だけを `()` にする。かぎ括弧などは残す |
 
 ## 依存
 

@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""ClipEdit — クリップボード上の表を TSV / CSV / Markdown で相互変換する CLI。
+"""ClipEdit — クリップボード上の表変換と、文字種の全角・半角変換をする CLI。
 
 使い方:
-  python main.py auto   # 形式を自動判定して変換
-  python main.py md     # → Markdown
-  python main.py tsv    # → タブ区切り
-  python main.py csv    # → CSV
+  python main.py auto    # 形式を自動判定して変換
+  python main.py md      # → Markdown
+  python main.py tsv     # → タブ区切り
+  python main.py csv     # → CSV
+  python main.py num     # 数字だけ全角→半角
+  python main.py numzen  # 数字だけ半角→全角
+  python main.py alnum   # 英数字だけ全角→半角
+  python main.py paren   # 丸括弧 () だけ全角→半角
 
 AutoHotKey 例:
   RunWait, python "C:\\path\\to\\clipedit\\main.py" csv -q, , Hide
@@ -17,9 +21,18 @@ import argparse
 import sys
 
 import clipboard_util
-from converter import auto_convert, to_csv, to_markdown, to_tsv
+from converter import (
+    auto_convert,
+    to_csv,
+    to_fullwidth_digits,
+    to_halfwidth_alnum,
+    to_halfwidth_digits,
+    to_halfwidth_parens,
+    to_markdown,
+    to_tsv,
+)
 
-MODES = ("auto", "md", "tsv", "csv")
+MODES = ("auto", "md", "tsv", "csv", "num", "numzen", "alnum", "paren")
 
 
 def convert(mode: str, text: str) -> tuple[str, str]:
@@ -36,18 +49,30 @@ def convert(mode: str, text: str) -> tuple[str, str]:
         return to_tsv(text), "-> TSV"
     if mode == "csv":
         return to_csv(text), "-> CSV"
+    if mode == "num":
+        return to_halfwidth_digits(text), "digits FW -> HW"
+    if mode == "numzen":
+        return to_fullwidth_digits(text), "digits HW -> FW"
+    if mode == "alnum":
+        return to_halfwidth_alnum(text), "alnum FW -> HW"
+    if mode == "paren":
+        return to_halfwidth_parens(text), "paren FW -> HW"
     raise ValueError(f"unknown mode: {mode}")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="clipedit",
-        description="クリップボードの表データを TSV / CSV / Markdown で相互変換する",
+        description="クリップボードの表データ、または文字種（数字・英数字・丸括弧）を変換する",
     )
     parser.add_argument(
         "mode",
         choices=MODES,
-        help="auto=自動判定 / md=Markdownへ / tsv=タブ区切りへ / csv=CSVへ",
+        help=(
+            "auto=自動判定 / md=Markdownへ / tsv=タブ区切りへ / csv=CSVへ / "
+            "num=数字だけ全角→半角 / numzen=数字だけ半角→全角 / "
+            "alnum=英数字だけ全角→半角 / paren=丸括弧だけ全角→半角"
+        ),
     )
     parser.add_argument(
         "-p",

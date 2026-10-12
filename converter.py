@@ -1,4 +1,4 @@
-"""TSV / CSV / Markdown 表の相互変換。"""
+"""TSV / CSV / Markdown 表の相互変換と、文字種の全角・半角変換。"""
 
 from __future__ import annotations
 
@@ -232,6 +232,54 @@ def markdown_to_tsv(text: str) -> str:
     if not rows:
         raise ValueError("Markdown の表が見つかりません。")
     return rows_to_tsv(rows)
+
+
+def _fw_map(start_fw: int, start_hw: str, count: int) -> dict[int, str]:
+    base = ord(start_hw)
+    return {start_fw + i: chr(base + i) for i in range(count)}
+
+
+# 全角英数字・丸括弧（U+FF08–U+FF5A の一部）だけを半角へ寄せる。
+# NFKC はカタカナや記号まで畳むため使わない。
+_DIGIT_TRANS = str.maketrans(_fw_map(0xFF10, "0", 10))
+_DIGIT_TO_FW_TRANS = str.maketrans({ord("0") + i: chr(0xFF10 + i) for i in range(10)})
+_ALNUM_TRANS = str.maketrans(
+    {
+        **_fw_map(0xFF10, "0", 10),
+        **_fw_map(0xFF21, "A", 26),
+        **_fw_map(0xFF41, "a", 26),
+    }
+)
+_PAREN_TRANS = str.maketrans({0xFF08: "(", 0xFF09: ")"})
+
+
+def _require_text(text: str) -> None:
+    if not text or not text.strip():
+        raise ValueError("クリップボードが空です。")
+
+
+def to_halfwidth_digits(text: str) -> str:
+    """全角数字（０-９）だけを半角にする。"""
+    _require_text(text)
+    return text.translate(_DIGIT_TRANS)
+
+
+def to_fullwidth_digits(text: str) -> str:
+    """半角数字（0-9）だけを全角にする。英字・記号・かな・括弧は変えない。"""
+    _require_text(text)
+    return text.translate(_DIGIT_TO_FW_TRANS)
+
+
+def to_halfwidth_alnum(text: str) -> str:
+    """全角の英字と数字だけを半角にする。記号・かな・括弧は変えない。"""
+    _require_text(text)
+    return text.translate(_ALNUM_TRANS)
+
+
+def to_halfwidth_parens(text: str) -> str:
+    """全角の丸括弧（ ）だけを半角の () にする。"""
+    _require_text(text)
+    return text.translate(_PAREN_TRANS)
 
 
 def auto_convert(text: str) -> tuple[str, FormatKind, FormatKind]:
