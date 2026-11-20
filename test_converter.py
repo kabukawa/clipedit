@@ -14,6 +14,7 @@ from converter import (
     to_halfwidth_alnum,
     to_halfwidth_digits,
     to_halfwidth_parens,
+    to_gitbash_path,
     to_markdown,
     to_tsv,
     tsv_to_markdown,
@@ -173,6 +174,53 @@ class TestFullwidthDigits(unittest.TestCase):
         src = "注文番号 42 と ７"
         self.assertEqual(to_halfwidth_digits(to_fullwidth_digits(src)), "注文番号 42 と 7")
         self.assertEqual(to_fullwidth_digits(to_halfwidth_digits(src)), "注文番号 ４２ と ７")
+
+
+class TestGitBashPath(unittest.TestCase):
+    def test_drive_and_backslashes(self) -> None:
+        self.assertEqual(
+            to_gitbash_path(r"C:\Users\kabuk\Documents"),
+            "/c/Users/kabuk/Documents",
+        )
+
+    def test_forward_slashes_and_lowercase_drive(self) -> None:
+        self.assertEqual(to_gitbash_path("d:/work/clipedit"), "/d/work/clipedit")
+
+    def test_drive_root(self) -> None:
+        self.assertEqual(to_gitbash_path("C:\\"), "/c/")
+        self.assertEqual(to_gitbash_path("C:"), "/c")
+
+    def test_strips_explorer_quotes_and_keeps_spaces(self) -> None:
+        self.assertEqual(
+            to_gitbash_path(r'"C:\Program Files\Git"'),
+            "/c/Program Files/Git",
+        )
+
+    def test_unc(self) -> None:
+        self.assertEqual(
+            to_gitbash_path(r"\\server\share\dir"),
+            "//server/share/dir",
+        )
+
+    def test_extended_length_prefix(self) -> None:
+        self.assertEqual(to_gitbash_path(r"\\?\C:\Users\foo"), "/c/Users/foo")
+        self.assertEqual(
+            to_gitbash_path(r"\\?\UNC\server\share\a"),
+            "//server/share/a",
+        )
+
+    def test_relative_and_already_gitbash(self) -> None:
+        self.assertEqual(to_gitbash_path(r"foo\bar"), "foo/bar")
+        self.assertEqual(to_gitbash_path("/c/Users/foo"), "/c/Users/foo")
+
+    def test_each_line(self) -> None:
+        self.assertEqual(to_gitbash_path("C:\\a\r\nD:\\b\r\n"), "/c/a\r\n/d/b\r\n")
+
+    def test_empty_raises(self) -> None:
+        with self.assertRaises(ValueError):
+            to_gitbash_path("")
+        with self.assertRaises(ValueError):
+            to_gitbash_path('""')
 
 
 if __name__ == "__main__":
