@@ -282,6 +282,58 @@ def to_halfwidth_parens(text: str) -> str:
     return text.translate(_PAREN_TRANS)
 
 
+def _one_windows_path_to_gitbash(line: str) -> str:
+    """1 行の Windows パスを Git Bash（MSYS）のパスにする。"""
+    path = line.strip()
+    if len(path) >= 2 and path[0] == path[-1] == '"':
+        path = path[1:-1]
+    if not path:
+        return ""
+
+    extended = path.replace("/", "\\")
+    if extended.upper().startswith("\\\\?\\UNC\\"):
+        path = "\\\\" + path[8:]
+    elif extended.startswith("\\\\?\\"):
+        path = path[4:]
+
+    if path.startswith("\\\\") or path.startswith("//"):
+        return "//" + path[2:].replace("\\", "/")
+
+    if path.startswith("/") and len(path) >= 2 and path[1].isalpha() and (len(path) == 2 or path[2] == "/"):
+        return "/" + path[1].lower() + path[2:].replace("\\", "/")
+
+    if len(path) >= 2 and path[0].isalpha() and path[1] == ":":
+        drive = path[0].lower()
+        rest = path[2:].replace("\\", "/")
+        if rest.startswith("/"):
+            return "/" + drive + rest
+        if rest == "":
+            return "/" + drive
+        return "/" + drive + "/" + rest
+
+    return path.replace("\\", "/")
+
+
+def to_gitbash_path(text: str) -> str:
+    """Windows のパス文字列を Git Bash のパスにする。
+
+    ``C:\\Users\\foo`` は ``/c/Users/foo``、``\\\\server\\share`` は ``//server/share`` になる。
+    行ごとに変換する。前後の二重引用符は外し、空白は残す。
+    """
+    _require_text(text)
+    newline = "\r\n" if "\r\n" in text else "\n"
+    ends_with_newline = text.endswith("\n")
+    converted = [_one_windows_path_to_gitbash(line) for line in text.splitlines()]
+    if not any(line.strip() for line in converted):
+        raise ValueError("パスが空です。")
+    if "\n" not in text and "\r" not in text:
+        return converted[0]
+    result = newline.join(converted)
+    if ends_with_newline:
+        result += newline
+    return result
+
+
 def auto_convert(text: str) -> tuple[str, FormatKind, FormatKind]:
     """
     形式を自動判定して相互変換する。

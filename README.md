@@ -1,6 +1,6 @@
 # ClipEdit
 
-Excel / Google Sheets の表（TSV）・CSV・Markdown 表を、**クリップボード経由**で相互変換する CLI です。あわせて、数字・英数字・丸括弧 `()` の全角と半角を、指定した文字種だけ変換するモードがあります。
+Excel / Google Sheets の表（TSV）・CSV・Markdown 表を、**クリップボード経由**で相互変換する CLI です。あわせて、数字・英数字・丸括弧 `()` の全角と半角を、指定した文字種だけ変換するモードがあります。Windows のパスを Git Bash のパスにするモードもあります。
 
 タスクトレイ常駐はしません。AutoHotKey などからホットキーで呼び出す想定です。Windows / macOS / Linux で動きます。
 
@@ -32,6 +32,9 @@ python main.py alnum
 
 # 丸括弧（ ）だけ半角の () にする
 python main.py paren
+
+# Windows パス → Git Bash パス
+python main.py bash
 ```
 
 変換結果はクリップボードに書き戻されます。成功時は stderr に短いステータスが出ます。クリップボードが空、または表モードで表として読めないときは stderr に `error:` を出して終了コード 1 で戻ります。クリップボードの読み書きに失敗したときは終了コード 2 です。
@@ -98,6 +101,12 @@ echo -e "a\tb\n1\t2" | python main.py md --stdin
 {
     RunWait('python "C:\Users\kabuk\Documents\work\src\clipedit\main.py" paren -q', , "Hide")
 }
+
+; Ctrl+Shift+B : Windows パス → Git Bash
+^+b::
+{
+    RunWait('python "C:\Users\kabuk\Documents\work\src\clipedit\main.py" bash -q', , "Hide")
+}
 ```
 
 venv を使う場合は `python` を `.venv\Scripts\python.exe` のフルパスに置き換えてください。
@@ -114,6 +123,7 @@ venv を使う場合は `python` を `.venv\Scripts\python.exe` のフルパス�
 | `numzen` | 任意のテキスト | 半角数字だけ全角。英字・記号・かな・括弧は残す |
 | `alnum` | 任意のテキスト | 全角の英字と数字だけ半角。記号・かな・括弧は残す |
 | `paren` | 任意のテキスト | 全角の丸括弧 `（）` だけを `()` にする。かぎ括弧などは残す |
+| `bash` | Windows のパス | Git Bash のパス。`C:\Users\foo` は `/c/Users/foo`、`\\server\share` は `//server/share`。行ごとに変換し、前後の `"` は外す。空白は残す |
 
 ## 依存
 

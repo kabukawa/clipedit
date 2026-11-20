@@ -10,6 +10,7 @@
   python main.py numzen  # 数字だけ半角→全角
   python main.py alnum   # 英数字だけ全角→半角
   python main.py paren   # 丸括弧 () だけ全角→半角
+  python main.py bash    # Windows パス → Git Bash パス
 
 AutoHotKey 例:
   RunWait, python "C:\\path\\to\\clipedit\\main.py" csv -q, , Hide
@@ -28,11 +29,12 @@ from converter import (
     to_halfwidth_alnum,
     to_halfwidth_digits,
     to_halfwidth_parens,
+    to_gitbash_path,
     to_markdown,
     to_tsv,
 )
 
-MODES = ("auto", "md", "tsv", "csv", "num", "numzen", "alnum", "paren")
+MODES = ("auto", "md", "tsv", "csv", "num", "numzen", "alnum", "paren", "bash")
 
 
 def convert(mode: str, text: str) -> tuple[str, str]:
@@ -57,13 +59,15 @@ def convert(mode: str, text: str) -> tuple[str, str]:
         return to_halfwidth_alnum(text), "alnum FW -> HW"
     if mode == "paren":
         return to_halfwidth_parens(text), "paren FW -> HW"
+    if mode == "bash":
+        return to_gitbash_path(text), "-> GITBASH"
     raise ValueError(f"unknown mode: {mode}")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="clipedit",
-        description="クリップボードの表データ、または文字種（数字・英数字・丸括弧）を変換する",
+        description="クリップボードの表データ、文字種（数字・英数字・丸括弧）、または Windows パスを変換する",
     )
     parser.add_argument(
         "mode",
@@ -71,7 +75,8 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "auto=自動判定 / md=Markdownへ / tsv=タブ区切りへ / csv=CSVへ / "
             "num=数字だけ全角→半角 / numzen=数字だけ半角→全角 / "
-            "alnum=英数字だけ全角→半角 / paren=丸括弧だけ全角→半角"
+            "alnum=英数字だけ全角→半角 / paren=丸括弧だけ全角→半角 / "
+            "bash=Windowsパスを Git Bash 形式へ"
         ),
     )
     parser.add_argument(
